@@ -3,7 +3,7 @@ requires = ["hatchling>=1.21.0"]
 build-backend = "hatchling.build"
 
 [project]
-name = "flashback"
+name = "flashback-df"
 version = "0.1.0"
 description = "Git for Datasets — time-travel debugging and lineage tracking for pandas/Polars."
 readme = "README.md"
