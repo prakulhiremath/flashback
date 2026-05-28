@@ -1,0 +1,154 @@
+[build-system]
+requires = ["hatchling>=1.21.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "flashback"
+version = "0.1.0"
+description = "Git for Datasets — time-travel debugging and lineage tracking for pandas/Polars."
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "flashback contributors" }]
+keywords = ["dataframe", "lineage", "debugging", "polars", "pandas", "git", "time-travel"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Typing :: Typed",
+]
+requires-python = ">=3.10"
+dependencies = [
+  "polars>=0.20.0",
+  "pandas>=2.0.0",
+  "rich>=13.0.0",
+  "networkx>=3.0",
+  "pyarrow>=14.0.0",
+  "msgpack>=1.0.0",
+  "xxhash>=3.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.4.0",
+  "pytest-cov>=4.1.0",
+  "pytest-xdist>=3.3.0",
+  "mypy>=1.8.0",
+  "ruff>=0.3.0",
+  "pandas-stubs>=2.0.0",
+  "types-networkx>=3.0.0",
+]
+jupyter = [
+  "ipython>=8.0.0",
+  "ipywidgets>=8.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/flashback-dev/flashback"
+Repository = "https://github.com/flashback-dev/flashback"
+Documentation = "https://flashback.readthedocs.io"
+"Bug Tracker" = "https://github.com/flashback-dev/flashback/issues"
+
+# ---------------------------------------------------------------------------
+# Hatch
+# ---------------------------------------------------------------------------
+[tool.hatch.build.targets.sdist]
+include = ["/flashback", "/tests", "/README.md", "/LICENSE"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["flashback"]
+
+# ---------------------------------------------------------------------------
+# Ruff
+# ---------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+src = ["flashback", "tests"]
+
+[tool.ruff.lint]
+select = [
+  "E", "W",   # pycodestyle
+  "F",        # pyflakes
+  "I",        # isort
+  "N",        # pep8-naming
+  "UP",       # pyupgrade
+  "B",        # flake8-bugbear
+  "C4",       # flake8-comprehensions
+  "SIM",      # flake8-simplify
+  "TCH",      # flake8-type-checking
+  "RUF",      # ruff-specific
+  "ANN",      # flake8-annotations
+  "PT",       # flake8-pytest-style
+  "ERA",      # eradicate (commented-out code)
+]
+ignore = [
+  "ANN101",  # missing type annotation for self
+  "ANN102",  # missing type annotation for cls
+  "ANN401",  # Dynamically typed expressions (Any) are disallowed
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["flashback"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ANN", "S101"]
+
+# ---------------------------------------------------------------------------
+# Mypy
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+show_error_codes = true
+namespace_packages = true
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = ["networkx.*", "msgpack.*", "xxhash.*"]
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# Pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+  "--cov=flashback",
+  "--cov-report=term-missing",
+  "--cov-report=xml",
+  "--cov-fail-under=90",
+  "-v",
+  "--tb=short",
+  "-p", "no:warnings",
+]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.coverage.run]
+source = ["flashback"]
+omit = ["tests/*", "**/__init__.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "def __repr__",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+  "@overload",
+]
