@@ -55,7 +55,7 @@ arguments, giving you:
 ## Install
 
 ```bash
-pip install flashback
+pip install flashback-df
 # or, if you use uv (recommended):
 uv add flashback
 ```
