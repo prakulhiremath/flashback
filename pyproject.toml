@@ -24,7 +24,7 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Typing :: Typed",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 dependencies = [
   "polars>=0.20.0",
   "pandas>=2.0.0",
