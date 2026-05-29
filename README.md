@@ -8,6 +8,7 @@
 [![Coverage](https://codecov.io/gh/prakulhiremath/flashback/branch/main/graph/badge.svg?token=XXXX)](https://codecov.io/gh/prakulhiremath/flashback)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20440635.svg)](https://doi.org/10.5281/zenodo.20440635)
 
 ```
 📂 load  ──▶  🔍 filter  ──▶  ➕ with_columns  ──▶  ⏪ lag  ──▶  HEAD
