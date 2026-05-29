@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use this software in your research, please cite it as below."
+authors:
+  - family-names: Hiremath
+    given-names: Prakul
+title: "flashback: Git for Datasets — time-travel debugging and transformation lineage tracking for pandas & Polars"
+version: 0.1.0  # Replace with your current release version if applicable
+date-released: 2026-05-29
+url: "https://github.com/prakulhiremath/flashback"
+repository-code: "https://github.com/prakulhiremath/flashback"
+license: MIT
+keywords:
+  - "data lineage"
+  - "reproducibility"
+  - "pandas"
+  - "polars"
+  - "time-travel debugging"
+  - "data science"
+  - "machine learning"
+  - "dataframe versioning"
+abstract: >-
+  flashback is an in-memory data versioning and lineage tracking tool for pandas and 
+  Polars. It wraps dataframes in a proxy layer to capture operations as a Directed 
+  Acyclic Graph (DAG) using deterministic SHA-256 hashing. It provides data scientists 
+  and ML researchers with structural diffing, instant time-travel checkouts, and terminal-based 
+  visualizations without the heavy overhead of file-based orchestration systems.
