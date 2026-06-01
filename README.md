@@ -10,6 +10,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20440635.svg)](https://doi.org/10.5281/zenodo.20440635)
 [![Medium](https://img.shields.io/badge/Medium-Read%20the%20Story-12100E?style=flat&logo=medium&logoColor=white)](https://medium.com/@prakulhiremath/the-6-hour-training-job-mystery-why-flashback-changes-everything-for-data-engineers-e81290fbdc84)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/flashback-df?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/flashback-df)
 
 ```
 📂 load  ──▶  🔍 filter  ──▶  ➕ with_columns  ──▶  ⏪ lag  ──▶  HEAD
