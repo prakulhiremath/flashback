@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>flashback — Git for Datasets</title>
+    <meta name="description" content="Time-travel debugging and transformation lineage tracking for pandas & Polars. Version control for your data transformations.">
+    
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- MathJax for LaTeX rendering -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <!-- Syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    
+    <style>
+        :root {
+            --accent: #0284c7;
+            --accent-light: #38bdf8;
+            --accent-dark: #0369a1;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+        }
+
+        .font-display {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            letter-spacing: -0.02em;
+        }
+
+        /* Code block styling */
+        .code-block {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+
+        .code-block code {
+            color: #e2e8f0;
+        }
+
+        .hljs-string { color: #86efac !important; }
+        .hljs-number { color: #fbbf24 !important; }
+        .hljs-literal { color: #818cf8 !important; }
+        .hljs-attr { color: #60a5fa !important; }
+        .hljs-title { color: #38bdf8 !important; }
+        .hljs-comment { color: #64748b !important; }
+
+        /* DAG diagram */
+        .dag-diagram {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            line-height: 1.6;
+            overflow-x: auto;
+            color: #475569;
+            margin: 2rem 0;
+        }
+
+        /* Architecture diagram */
+        .architecture-diagram {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            line-height: 1.6;
+            overflow-x: auto;
+            color: #475569;
+            margin: 2rem 0;
+        }
+
+        /* Problem vs solution */
+        .problem-solution {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        @media (max-width: 768px) {
+            .problem-solution {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .problem-card {
+            background: #fee2e2;
+            border-left: 3px solid var(--danger);
+            padding: 1.5rem;
+            border-radius: 0.375rem;
+        }
+
+        .solution-card {
+            background: #f0fdf4;
+            border-left: 3px solid var(--success);
+            padding: 1.5rem;
+            border-radius: 0.375rem;
+        }
+
+        .problem-card h4 {
+            color: var(--danger);
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .solution-card h4 {
+            color: var(--success);
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        /* API table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+        }
+
+        thead {
+            background: #f8fafc;
+        }
+
+        th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #1e293b;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            color: #475569;
+        }
+
+        tr:hover {
+            background: #f8fafc;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 0.375rem 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-decoration: none;
+            color: #475569;
+            transition: all 0.2s ease;
+        }
+
+        .badge:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(2, 132, 199, 0.05);
+        }
+
+        /* Feature card */
+        .feature-card {
+            background: linear-gradient(135deg, rgba(2, 132, 199, 0.05) 0%, rgba(56, 189, 248, 0.05) 100%);
+            border: 1px solid #e2e8f0;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            border-left: 3px solid var(--accent);
+        }
+
+        /* Hero section */
+        .hero {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            padding: 6rem 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .hero-accent {
+            color: var(--accent);
+        }
+
+        /* Section */
+        .section {
+            padding: 4rem 0;
+        }
+
+        .section h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.01em;
+        }
+
+        .section h3 {
+            font-size: 1.375rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .section p {
+            font-size: 1rem;
+            line-height: 1.7;
+            color: #475569;
+            margin-bottom: 1rem;
+        }
+
+        .section ul {
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .section li {
+            color: #475569;
+            margin-bottom: 0.5rem;
+            line-height: 1.7;
+        }
+
+        /* Button */
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: var(--accent);
+            color: white;
+            text-decoration: none;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            border: 1px solid var(--accent);
+        }
+
+        .btn:hover {
+            background: var(--accent-dark);
+            border-color: var(--accent-dark);
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--accent);
+        }
+
+        .btn-outline:hover {
+            background: rgba(2, 132, 199, 0.1);
+        }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+            margin: 4rem 0;
+        }
+
+        /* Info box */
+        .info-box {
+            background: #f0f9ff;
+            border-left: 3px solid var(--accent);
+            padding: 1.5rem;
+            border-radius: 0.375rem;
+            margin: 2rem 0;
+        }
+
+        .warning-box {
+            background: #fef3c7;
+            border-left: 3px solid var(--warning);
+            padding: 1.5rem;
+            border-radius: 0.375rem;
+            margin: 2rem 0;
+        }
+
+        .info-box strong { color: var(--accent); }
+        .warning-box strong { color: var(--warning); }
+
+        /* Stat boxes */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .stat-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 1.5rem;
+            border-radius: 0.375rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+            font-family: 'Courier New', monospace;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #475569;
+            margin-top: 0.5rem;
+        }
+
+        /* Comparison grid */
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .comparison-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 1.5rem;
+            border-radius: 0.375rem;
+            border-top: 3px solid var(--accent);
+        }
+
+        .comparison-item h4 {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+        }
+
+        .comparison-item p {
+            font-size: 0.875rem;
+            color: #475569;
+        }
+
+        /* Gradient text */
+        .gradient-text {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Code inline */
+        code {
+            background: #f1f5f9;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .dark-bg code {
+            background: inherit;
+        }
+    </style>
+</head>
+<body class="bg-white text-gray-900">
+    <!-- Hero Section -->
+    <div class="hero">
+        <div class="max-w-6xl mx-auto px-6 sm:px-8">
+            <!-- Badges -->
+            <div class="flex flex-wrap gap-2 mb-8">
+                <span class="badge">⚡ Git for Datasets</span>
+                <a href="https://pypi.org/project/flashback/" class="badge" target="_blank" rel="noopener">
+                    📦 PyPI
+                </a>
+                <a href="https://github.com/flashback-dev/flashback" class="badge" target="_blank" rel="noopener">
+                    🔗 GitHub
+                </a>
+                <a href="https://doi.org/10.5281/zenodo.20440635" class="badge" target="_blank" rel="noopener">
+                    🔬 Zenodo
+                </a>
+                <a href="https://medium.com/@prakulhiremath/the-6-hour-training-job-mystery-why-flashback-changes-everything-for-data-engineers-e81290fbdc84" class="badge" target="_blank" rel="noopener">
+                    ✍️ Medium Article
+                </a>
+                <span class="badge">🐼 Pandas & Polars</span>
+                <span class="badge">✓ DAG Tracking</span>
+            </div>
+
+            <!-- Hero Content -->
+            <div class="max-w-3xl">
+                <h1 class="text-5xl sm:text-6xl font-display font-bold mb-4 text-slate-900">
+                    flashback
+                </h1>
+                <p class="text-xl text-slate-600 mb-2 font-display font-semibold">
+                    Git for Datasets
+                </p>
+                <p class="text-2xl font-display font-semibold mb-8">
+                    <span class="text-slate-700">Time-travel debugging and</span>
+                    <span class="hero-accent"> transformation lineage</span>
+                    <span class="text-slate-700"> tracking</span>
+                </p>
+                <p class="text-lg text-slate-600 mb-8 max-w-2xl leading-relaxed">
+                    Version control for your data transformations. Track every column change, instantly replay any checkpoint, and debug pipeline mysteries with an in-memory DAG that records the complete history of your DataFrame.
+                </p>
+
+                <div class="flex flex-wrap gap-4">
+                    <a href="#quickstart" class="btn">Get Started</a>
+                    <a href="https://github.com/flashback-dev/flashback" class="btn btn-outline" target="_blank" rel="noopener">
+                        View on GitHub →
+                    </a>
+                </div>
+
+                <p class="text-sm text-slate-500 mt-6 italic">
+                    Pure Python, zero overhead. Works with Pandas, Polars, and NumPy arrays.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Core Problem -->
+    <div class="max-w-6xl mx-auto px-6 sm:px-8 section">
+        <div class="bg-slate-50 border-l-4 border-red-600 p-8 rounded-sm">
+            <p class="text-lg text-slate-800 font-semibold mb-4">
+                "Why did my metric change?"
+            </p>
+            <p class="text-slate-700 leading-relaxed">
+                You ran a 6-hour training job. The Sharpe ratio dropped from 1.4 to 0.9. Somewhere between the raw tick data and the feature matrix, a silent transformation introduced look-ahead bias or row filtering. You have no idea where. <strong>Your logs don't track it. Git can't diff binary Parquet files. And by the time you discover the bug, you've wasted days.</strong>
+            </p>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- The Problem -->
+    <div class="max-w-6xl mx-auto px-6 sm:px-8 section">
+        <h2>Why Existing Tools Don't Work</h2>
+
+        <div class="problem-solution">
+            <div class="problem-card">
+                <h4>❌ DVC is too heavy</h4>
+                <p class="text-sm text-slate-700">
+                    Versions entire files with S3 backends, CI pipelines, and YAML configs. You don't want to learn a new orchestration system—you want to know what happened to column <code>price_lag1</code> between step 3 and step 7.
+                </p>
+            </div>
+
+            <div class="solution-card">
+                <h4>✓ flashback is surgical</h4>
+                <p class="text-sm text-slate-700">
+                    Tracks at the column and row level. Zero I/O overhead. Records every transformation in an in-memory DAG. Instant time-travel to any checkpoint.
+                </p>
+            </div>
+
+            <div class="problem-card">
+                <h4>❌ Git doesn't understand columns</h4>
+                <p class="text-sm text-slate-700">
+                    <code>git diff</code> on a Parquet file is binary noise. It cannot tell you "this <code>.filter()</code> removed 412 rows" or "this <code>.with_columns()</code> introduced a null in 3% of rows."
+                </p>
+            </div>
+
+            <div class="solution-card">
+                <h4>✓ flashback speaks DataFrame</h4>
+                <p class="text-sm text-slate-700">
+                    Shows you exactly which rows were added/removed, which columns changed, and how many nulls appeared—all in human-readable format.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- The Solution -->
+    <div class="max-w-6xl mx-auto px-6 sm:px-8 section">
+        <h2>The Solution: flashback</h2>
+
+        <p>
+            flashback wraps your DataFrame in a zero-cost proxy that records every transformation as a node in an in-memory Directed Acyclic Graph (DAG). Each node is identified by a deterministic SHA-256 hash of the schema + operation arguments.
+        </p>
+
+        <div class="info-box">
+            <p>
+                <strong>The key insight:</strong> Identical transformations applied to identical data always produce the same node ID. Transformations are deterministic by construction, making them reproducible and cache-able.
+            </p>
+        </div>
+
+        <h3>What You Get</h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
+            <div class="feature-card">
+                <h4 class="font-bold text-slate-900 mb-2">⏪ Instant Time-Travel</h4>
+                <p class="text-sm text-slate-700">
+                    <code>fb.checkout("before-lag")</code> returns the exact frame at that checkpoint with no I/O unless you ask for it.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <h4 class="font-bold text-slate-900 mb-2">📊 Structural Diffing</h4>
+                <p class="text-sm text-slate-700">
+                    <code>frame.diff(other)</code> shows exactly which rows were added or removed between any two checkpoints.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <h4 class="font-bold text-slate-900 mb-2">🎨 Beautiful Lineage Views</h4>
+                <p class="text-sm text-slate-700">
+                    <code>fb.visualize()</code> renders a git-log-style tree in your terminal or an SVG graph in Jupyter.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <h4 class="font-bold text-slate-900 mb-2">🔄 Reproducibility</h4>
+                <p class="text-sm text-slate-700">
+                    Identical transformations on identical data always produce the same node ID—no hidden state, no surprises.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Architecture -->
+    <div class="max-w-6xl mx-auto px-6 sm:px-8 section">
+        <h2>How It Works</h2>
+
+        <h3>The Architecture</h3>
+
+        <div class="architecture-diagram">
+<pre>┌──────────────────────────────────────────────────────────┐
+│  FlashbackFrame                                          │
+│                                                          │
+│  ┌──────────────┐    intercept    ┌───────────────────┐  │
+│  │  Polars API  │ ─────────────▶ │   LineageDAG      │  │
+│  │  .filter()   │                │                   │  │
+│  │  .sort()     │  record node   │  root ──▶ filter  │  │
+│  │  .join()     │ ◀──────────── │         ──▶ sort  │  │
+│  └──────────────┘                │         ──▶ join  │  │
+│         │                        └───────────────────┘  │
+│         ▼                                               │
+│  polars.DataFrame  (unchanged; Polars still optimises)  │
+└──────────────────────────────────────────────────────────┘</pre>
+        </div>
+
+        <h3>Node Identity & Determinism</h3>
+
+        <p>
+            Each node is identified by a 20-character hex SHA-256 of:
+        </p>
+
+        <div class="code-block mb-8"><pre><code class="language-json">{
+  "parents": ["&lt;parent_node_id&gt;"],
+  "op": "filter",
+  "kwargs": {"arg_0": "[(col(\"price\")) > (0)]"},
+  "schema": {"id": "Int64", "price": "Float64", ...}
+}</code></pre></div>
+
+        <p>This means:</p>
+
+        <ul class="space-y-2 text-slate-700">
+            <li><strong>Identical pipelines on identical data always hash to the same node</strong> → instant cache hits</li>
+            <li><strong>Changing any argument or parent state produces a different hash</strong> → no silent collisions</li>
+            <li><strong>The hash is deterministic</strong> → reproducible across runs and environments</li>
+        </ul>
+
+        <h3>Visualization</h3>
+
+        <p>Terminal output with <code>fb.visualize()</code>:</p>
+
+        <div class="code-block">
+<pre><code>╭─ flashback lineage  •  4 commits  •  HEAD → rolling_mean ─────────────────╮
+│                                                                             │
+│  📂 LOAD  5,000 rows × 4 cols  [14:03:01]                                  │
+│  │                                                                          │
+│  ├─ 🔍 filter  arg_0=...col("price")...  4,823 rows × 4 cols  #a1b2c3d4   │
+│  │                                                                          │
+│  ├─ ➕ with_columns  arg_0=...alias("notional")  4,823 rows × 5  #e5f6a7  │
+│  │                                                                          │
+│  ├─ ⏪ lag  column='price'  n=1  4,823 rows × 6  [before-lag]  #b8c9d0    │
+│  │                                                                          │
+│  └─ 📈 rolling_mean  window=5  4,823 rows × 7 ● HEAD  #01e2f3a4           │
+│                                                                             │
+╰─────────────────────────────────────────────────────────────────────────────╯</code></pre>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Quickstart -->
+    <div class="max-w-6xl mx-auto px-6 sm:px-8 section" id="quickstart">
+        <h2>Quickstart</h2>
+
+        <h3>Installation</h3>
+
+        <div class="code-block mb-8"><pre><code class="language-bash">pip install flashback-df
+# or with uv (recommended):
+uv add flashback</code></pre></div>
+
+        <h3>5-Minute Example</h3>
+
+        <div class="code-block mb-8"><pre><code class="language-python">import flashback as fb
+
+# ── 1. Load any source ──────────────────────────────────────────────────────
+df = fb.load("trades.parquet")          # Parquet
+df = fb.load("prices.csv")              # CSV
+df = fb.load(my_polars_df)              # Polars DataFrame
+df = fb.load(my_pandas_df)              # Pandas DataFrame
+
+# ── 2. Transform — every step is recorded automatically ─────────────────────
+df = df.filter(fb.col("price") > 0)
+df = df.with_columns(
+    (fb.col("price") * fb.col("volume")).alias("notional")
+)
+
+# Tag a checkpoint before a risky operation
+df = df.tag("before-lag")
+
+df = df.lag("price", 1)                 # sugar for shift(-1) + tracking
+df = df.rolling_mean("notional", 5)
+
+# ── 3. Time-travel ──────────────────────────────────────────────────────────
+df_clean = fb.checkout("before-lag")    # instant; no disk I/O
+
+# ── 4. See what broke your Sharpe ratio ─────────────────────────────────────
+fb.visualize()</code></pre></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- API Reference -->
+    <div class="max-w-6xl mx-auto px-6 sm:px-8 section">
+        <h2>API Reference</h2>
+
+        <h3>Core Functions</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Function</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>fb.load(source, *, label=None)</code></td>
+                    <td>Load from file (.parquet, .csv, .json), Polars/Pandas DataFrame. Returns FlashbackFrame.</td>
+                </tr>
+                <tr>
+                    <td><code>fb.col(name)</code></td>
+                    <td>Alias for <code>polars.col</code>. Use for IDE-friendly imports.</td>
+                </tr>
+                <tr>
+                    <td><code>fb.commit(frame, label, *, message="")</code></td>
+                    <td>Tag the current state with a human-readable label (like <code>git tag</code>).</td>
+                </tr>
+                <tr>
+                    <td><code>fb.checkout(label, *, frame=None)</code></td>
+                    <td>Time-travel to a named checkpoint. Returns a fully materialised FlashbackFrame.</td>
+                </tr>
+                <tr>
+                    <td><code>fb.visualize(frame=None, *, style="tree")</code></td>
+                    <td>Render the transformation lineage. Styles: "tree" (default), "dag", "svg" (Jupyter).</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>FlashbackFrame Methods</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Method</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>.lag(column, n=1, *, alias=None)</code></td>
+                    <td>Shift <code>column</code> by <code>n</code> periods with tracking. Creates <code>column_lag_n</code>.</td>
+                </tr>
+                <tr>
+                    <td><code>.rolling_mean(column, window, *, alias=None)</code></td>
+                    <td>Rolling mean with tracking. Creates <code>column_rmean_window</code>.</td>
+                </tr>
+                <tr>
+                    <td><code>.tag(label, *, message="")</code></td>
+                    <td>Same as <code>fb.commit()</code> but called on the frame.</td>
+                </tr>
+                <tr>
+                    <td><code>.diff(other)</code></td>
+                    <td>Structural diff. Returns Polars DataFrame with <code>_diff</code> column.</td>
+                </tr>
+                <tr>
+                    <td><code>.history()</code></td>
+                    <td>Full transformation chain as list of dicts (root → HEAD).</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Persistence -->
+    <div class="max-w-6xl mx-auto px-6 sm:px-8 section">
+        <h2>Persistence & Serialisation</h2>
+
+        <p>
+            Lineage graphs can be saved to and loaded from disk for reproducible research:
+        </p>
+
+        <div class="code-block mb-8"><pre><code class="language-python">from flashback.storage import Storage
+
+# Save a lineage DAG
+store = Storage(".flashback")  # or Storage.from_cwd()
+store.save(df, frame_id="experiment-001")
+
+# Later, in another session:
+df = store.load("experiment-001")</code></pre></div>
+
+        <p>The <code>.flashback/</code> directory layout:</p>
+
+        <div class="code-block">
+<pre><code>.flashback/
+├── config.json
+├── graphs/
+│   └── experiment-001.json       # serialised DAG
+└── cache/
+    └── &lt;node_id&gt;.parquet        # materialised node snapshots</code></pre>
+        </div>
+
+        <div class="info-box">
+            <p>
+                <strong>Efficient storage:</strong> Only materialises nodes you explicitly checkpoint or request. Intermediate DAG nodes are compressed and stored as metadata only.
+            </p>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Development -->
+    <div class="max-w-6xl mx-auto px-6 sm:px-8 section">
+        <h2>Development & Testing</h2>
+
+        <h3>Quick Start for Contributors</h3>
+
+        <div class="code-block mb-8"><pre><code class="language-bash">git clone https://github.com/flashback-dev/flashback
+cd flashback
+pip install -e ".[dev]"
+
+# Lint
+ruff check flashback tests
+ruff format --check flashback tests
+
+# Type-check
+mypy flashback
+
+# Test with coverage
+pytest</code></pre></div>
+
+        <h3>CI/CD Matrix</h3>
+
+        <p>
+            The CI pipeline validates across:
+        </p>
+
+        <div class="stat-grid">
+            <div class="stat-box">
+                <p class="stat-label">OS</p>
+                <p class="stat-value" style="font-size: 1.5rem;">3</p>
+                <p class="stat-label">Ubuntu, macOS, Windows</p>
+            </div>
+            <div class="stat-box">
+                <p class="stat-label">Python</p>
+                <p class="stat-value" style="font-size: 1.5rem;">5</p>
+                <p class="stat-label">3.10 – 3.13</p>
+            </div>
+            <div class="stat-box">
+                <p class="stat-label">Coverage</p>
+                <p class="stat-value" style="font-size: 1.5rem;">90%</p>
+                <p class="stat-label">Hard threshold</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Roadmap -->
+    <div class="max-w-6xl mx-auto px-6 sm:px-8 section">
+        <h2>Roadmap</h2>
+
+        <div class="comparison-grid">
+            <div class="comparison-item">
+                <h4>Branching</h4>
+                <p><code>fb.branch("experiment-A")</code> for parallel pipeline exploration</p>
+            </div>
+
+            <div class="comparison-item">
+                <h4>Merge</h4>
+                <p>Reconcile two branches at the DAG level with conflict detection</p>
+            </div>
+
+            <div class="comparison-item">
+                <h4>Remote Storage</h4>
+                <p>Push/pull lineage graphs to S3, GCS, or Hugging Face Hub</p>
+            </div>
+
+            <div class="comparison-item">
+                <h4>Lazy Plans</h4>
+                <p>Track Polars lazy evaluation before <code>.collect()</code></p>
+            </div>
+
+            <div class="comparison-item">
+                <h4>Notebook Magic</h4>
+                <p><code>%load_ext flashback</code> with live DAG sidebar in Jupyter</p>
+            </div>
+
+            <div class="comparison-item">
+                <h4>DVC Export</h4>
+                <p>Generate <code>.dvc</code> stage files from a flashback DAG</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Why Use flashback -->
+    <div class="max-w-6xl mx-auto px-6 sm:px-8 section">
+        <h2>Why Use flashback?</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="feature-card">
+                <h4 class="font-bold text-slate-900 mb-2">🔍 Debug Pipeline Mysteries</h4>
+                <p class="text-sm text-slate-700">
+                    Instantly see which transformation caused your metric to drop. No guessing. No log archaeology.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <h4 class="font-bold text-slate-900 mb-2">⏱️ Save Debugging Time</h4>
+                <p class="text-sm text-slate-700">
+                    Time-travel to any checkpoint in milliseconds. No re-running 6-hour jobs.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <h4 class="font-bold text-slate-900 mb-2">📊 Reproducible Research</h4>
+                <p class="text-sm text-slate-700">
+                    Deterministic node hashing ensures the same pipeline is always reproducible across environments.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <h4 class="font-bold text-slate-900 mb-2">🚀 Zero Overhead</h4>
+                <p class="text-sm text-slate-700">
+                    Wraps Polars—doesn't slow it down. Lazy materialization means minimal memory use.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <h4 class="font-bold text-slate-900 mb-2">🐼 Works with Pandas & Polars</h4>
+                <p class="text-sm text-slate-700">
+                    Load from either. Convert between them. Mix and match in your pipeline.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <h4 class="font-bold text-slate-900 mb-2">📦 Lightweight</h4>
+                <p class="text-sm text-slate-700">
+                    Pure Python. No database. No external services. Runs entirely locally.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Footer -->
+    <div class="bg-slate-50 border-t border-slate-200 py-12">
+        <div class="max-w-6xl mx-auto px-6 sm:px-8">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-12">
+                <div>
+                    <h4 class="font-semibold text-slate-900 mb-4">Resources</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="https://pypi.org/project/flashback/" class="text-blue-600 hover:underline" target="_blank" rel="noopener">PyPI Package</a></li>
+                        <li><a href="https://github.com/flashback-dev/flashback" class="text-blue-600 hover:underline" target="_blank" rel="noopener">GitHub Repository</a></li>
+                        <li><a href="https://doi.org/10.5281/zenodo.20440635" class="text-blue-600 hover:underline" target="_blank" rel="noopener">Zenodo Archive</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-slate-900 mb-4">Learn</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="https://medium.com/@prakulhiremath/the-6-hour-training-job-mystery-why-flashback-changes-everything-for-data-engineers-e81290fbdc84" class="text-blue-600 hover:underline" target="_blank" rel="noopener">Medium Article</a></li>
+                        <li><a href="https://github.com/flashback-dev/flashback/issues" class="text-blue-600 hover:underline" target="_blank" rel="noopener">Report Issues</a></li>
+                        <li><a href="https://github.com/flashback-dev/flashback#contributing" class="text-blue-600 hover:underline" target="_blank" rel="noopener">Contributing Guide</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-slate-900 mb-4">Connect</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="mailto:prakulhiremath03@gmail.com" class="text-blue-600 hover:underline">Email</a></li>
+                        <li><a href="https://github.com/prakulhiremath" class="text-blue-600 hover:underline" target="_blank" rel="noopener">GitHub Profile</a></li>
+                        <li><a href="https://pepy.tech/projects/flashback-df" class="text-blue-600 hover:underline" target="_blank" rel="noopener">PyPI Stats</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-200 pt-8">
+                <p class="text-sm text-slate-600 text-center mb-4">
+                    <strong>flashback</strong> — Git for Datasets
+                </p>
+                <p class="text-xs text-slate-500 text-center">
+                    MIT License · Python 3.10+ · Pandas & Polars · <a href="https://github.com/flashback-dev/flashback" class="text-blue-600 hover:underline" target="_blank" rel="noopener">Open Source</a>
+                </p>
+                <p class="text-xs text-slate-500 text-center mt-4">
+                    Built with <a href="https://pola.rs" class="text-blue-600 hover:underline" target="_blank" rel="noopener">Polars</a> · <a href="https://github.com/Textualize/rich" class="text-blue-600 hover:underline" target="_blank" rel="noopener">Rich</a> · <a href="https://networkx.org" class="text-blue-600 hover:underline" target="_blank" rel="noopener">NetworkX</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Highlight code blocks
+        document.querySelectorAll('.code-block pre code').forEach((block) => {
+            hljs.highlightElement(block);
+        });
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        // Fade in on load
+        window.addEventListener('load', () => {
+            document.body.style.opacity = '1';
+        });
+    </script>
+</body>
+</html>
